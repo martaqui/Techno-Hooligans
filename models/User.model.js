@@ -1,32 +1,22 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require('mongoose')
+const bcrypt = require('bcryptjs')
 
-// TODO: Please make sure you edit the User model to whatever makes sense in this case
-const userSchema = new Schema(
-  {
-    username: {
-      type: String,
-      required: false,
-      unique: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-  },
-  {
-    // this second object adds extra properties: `createdAt` and `updatedAt`
-    timestamps: true,
-  }
-);
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'user', enum: ['user', 'admin'] }
+})
 
-const User = model("User", userSchema);
+userSchema.pre('save', function (next) {
+    if (!this.isModified('password')) return next();
+    this.password = bcrypt.hashSync(this.password, 10);
+    next();
+})
 
+userSchema.methods.isValidPassword = function (password) {
+    return bcrypt.compareSync(password, this.password);
+}
+
+const User = mongoose.model('User', userSchema);
 module.exports = User;
